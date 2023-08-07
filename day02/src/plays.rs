@@ -8,7 +8,7 @@ pub enum NormalPlay {
     C,
 }
 
-#[derive(Debug, PartialEq, EnumString)]
+#[derive(Debug, PartialEq, EnumString, Clone)]
 #[strum(ascii_case_insensitive)]
 pub enum CrypticPlay {
     X,
@@ -16,41 +16,88 @@ pub enum CrypticPlay {
     Z,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum MatchResult {
+    Win,
+    Draw,
+    Lose,
+}
+
 pub trait Score {
     fn score(&self) -> i32;
-    fn against_normal(&self, opponent: &Self) -> i32;
+}
+
+trait Playable {
+    fn win(&self) -> Self;
+    fn lose(&self) -> Self;
+    fn draw(&self) -> Self;
+}
+
+impl Playable for CrypticPlay {
+    fn lose(&self) -> CrypticPlay {
+        match self {
+            CrypticPlay::X => CrypticPlay::Z,
+            CrypticPlay::Y => CrypticPlay::X,
+            CrypticPlay::Z => CrypticPlay::Y,
+        }
+    }
+
+    fn draw(&self) -> CrypticPlay {
+        self.clone()
+    }
+
+    fn win(&self) -> CrypticPlay {
+        match self {
+            CrypticPlay::X => CrypticPlay::Y,
+            CrypticPlay::Y => CrypticPlay::Z,
+            CrypticPlay::Z => CrypticPlay::X,
+        }
+    }
 }
 
 impl CrypticPlay {
-    pub fn to_normal(&self) -> NormalPlay {
+    pub fn expected_play(&self, result: &MatchResult) -> Self {
+        match result {
+            MatchResult::Win => self.win(),
+            MatchResult::Draw => self.draw(),
+            MatchResult::Lose => self.lose(),
+        }
+    }
+    pub fn to_match_result(&self) -> MatchResult {
         match self {
-            CrypticPlay::X => NormalPlay::A,
-            CrypticPlay::Y => NormalPlay::B,
-            CrypticPlay::Z => NormalPlay::C,
+            CrypticPlay::X => MatchResult::Lose,
+            CrypticPlay::Y => MatchResult::Draw,
+            CrypticPlay::Z => MatchResult::Win,
         }
     }
 }
 
-impl Score for NormalPlay {
-    fn score(&self) -> i32 {
+impl NormalPlay {
+    pub fn to_cryptic(&self) -> CrypticPlay {
         match self {
-            NormalPlay::A => 1,
-            NormalPlay::B => 2,
-            NormalPlay::C => 3,
+            NormalPlay::A => CrypticPlay::X,
+            NormalPlay::B => CrypticPlay::Y,
+            NormalPlay::C => CrypticPlay::Z,
         }
     }
+}
 
-    fn against_normal(&self, opponent: &Self) -> i32 {
-        match [self, opponent] {
-            [NormalPlay::A, NormalPlay::A] => 3,
-            [NormalPlay::A, NormalPlay::B] => 0,
-            [NormalPlay::A, NormalPlay::C] => 6,
-            [NormalPlay::B, NormalPlay::A] => 6,
-            [NormalPlay::B, NormalPlay::B] => 3,
-            [NormalPlay::B, NormalPlay::C] => 0,
-            [NormalPlay::C, NormalPlay::A] => 0,
-            [NormalPlay::C, NormalPlay::B] => 6,
-            [NormalPlay::C, NormalPlay::C] => 3,
+impl Score for CrypticPlay {
+    fn score(&self) -> i32 {
+        match self {
+            CrypticPlay::X => 1,
+            CrypticPlay::Y => 2,
+            CrypticPlay::Z => 3,
+        }
+    }
+}
+
+impl Score for MatchResult {
+    fn score(&self) -> i32 {
+        match self {
+            Self::Win => 6,
+            Self::Draw => 3,
+            Self::Lose => 0,
         }
     }
 }
