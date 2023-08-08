@@ -26,9 +26,25 @@ fn find_duplicated_item(rucksack: &str) -> Option<char> {
     None
 }
 
+fn find_badge(sacks: Vec<&str>) -> Option<char> {
+    if let [first, second, third] = sacks[..] {
+        let first_map = first.chars().collect::<HashSet<_>>();
+        let second_map = second.chars().collect::<HashSet<_>>();
+
+        for c in third.chars() {
+            if first_map.contains(&c) && second_map.contains(&c) {
+                return Some(c);
+            }
+        }
+    }
+
+    None
+}
+
 fn main() {
     let contents = std::fs::read_to_string("data/test.txt").unwrap();
 
+    // problem 1
     let response = contents
         .split("\n")
         .into_iter()
@@ -38,4 +54,17 @@ fn main() {
         .sum::<usize>();
 
     println!("{}", response);
+
+    let problem2 = contents
+        .split("\n")
+        .collect::<Vec<_>>()
+        .chunks_exact(3)
+        .into_iter()
+        .map(|chars| Vec::from(chars))
+        .map(find_badge)
+        .map(|c| c.unwrap())
+        .map(|c| c.to_index())
+        .sum::<usize>();
+
+    println!("{}", problem2)
 }
