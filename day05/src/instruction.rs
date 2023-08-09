@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Instruction {
     pub quantity: usize,
     pub from: usize,

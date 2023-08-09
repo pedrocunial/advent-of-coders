@@ -16,15 +16,18 @@ fn main() {
         .by_ref()
         .take_while(|line| !line.is_empty())
         .collect::<Vec<_>>();
-    let mut board = Board::from_str_vec(initial_position);
+    let mut problem1_board = Board::from_str_vec(initial_position);
+    let mut problem2_board = problem1_board.clone();
 
     let instructions = lines
         .map(Instruction::from_str)
         .map(|instruction| instruction.unwrap());
 
     for instruction in instructions {
-        board.play(instruction);
+        problem1_board.play_v1(instruction);
+        problem2_board.play_v2(instruction);
     }
 
-    dbg!(board.results());
+    dbg!(problem1_board.results());
+    dbg!(problem2_board.results());
 }

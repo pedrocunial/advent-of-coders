@@ -50,18 +50,34 @@ impl FromStrVec for Board {
 }
 
 pub trait Playable {
-    fn play(&mut self, instruction: Instruction);
+    fn play_v1(&mut self, instruction: Instruction);
+    fn play_v2(&mut self, instruction: Instruction);
     fn results(&self) -> String;
 }
 
 impl Playable for Board {
-    fn play(&mut self, instruction: Instruction) {
+    fn play_v1(&mut self, instruction: Instruction) {
         (0..instruction.quantity).for_each(|_| {
             if let Some(val) = self[instruction.from - 1].pop() {
                 self[instruction.to - 1].push(val);
             }
         });
     }
+
+    fn play_v2(&mut self, instruction: Instruction) {
+        let mut crates = (0..instruction.quantity).fold(vec![], |mut acc, _| {
+            if let Some(val) = self[instruction.from - 1].pop() {
+                acc.push(val);
+            }
+
+            acc
+        });
+        crates.reverse();
+        crates
+            .into_iter()
+            .for_each(|val| self[instruction.to - 1].push(val));
+    }
+
     fn results(&self) -> String {
         self.into_iter()
             .filter(|col| !col.is_empty())
