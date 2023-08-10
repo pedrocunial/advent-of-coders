@@ -1,15 +1,13 @@
 use std::collections::{HashSet, VecDeque};
 
-const THRESHOLD: usize = 4;
-
-fn problem1(payload: &str) -> Option<usize> {
+fn problem(payload: &str, threshold: usize) -> Option<usize> {
     let mut q = VecDeque::new();
     for (idx, c) in payload.chars().enumerate() {
-        if q.len() == THRESHOLD {
+        if q.len() == threshold {
             q.pop_front();
         }
         q.push_back(c);
-        if q.len() == THRESHOLD && q.len() == q.clone().into_iter().collect::<HashSet<_>>().len() {
+        if q.len() == threshold && q.len() == q.clone().into_iter().collect::<HashSet<_>>().len() {
             return Some(idx + 1);
         }
     }
@@ -17,9 +15,10 @@ fn problem1(payload: &str) -> Option<usize> {
 }
 
 fn main() {
-    let contents = std::fs::read_to_string("data/input.txt").unwrap();
+    let contents = std::fs::read_to_string("data/test.txt").unwrap();
     contents.lines().for_each(|case| {
         dbg!(case);
-        dbg!(problem1(case).unwrap());
+        dbg!(problem(case, 4).unwrap());
+        dbg!(problem(case, 14).unwrap());
     });
 }
