@@ -1,12 +1,22 @@
+use std::{cell::RefCell, rc::Rc};
+
 use model::Dir;
+
+use crate::model::OSObject;
 
 mod model;
 
-pub fn parse(input: Vec<&str>) -> Box<Dir> {
-    let root = Box::new(Dir::new(None));
-    let objs = input.into_iter().map(start_of_line).collect::<Vec<_>>();
+pub fn parse(input: Vec<&str>) -> Rc<RefCell<Dir>> {
+    let objs = input
+        .into_iter()
+        .map(start_of_line)
+        .map(|(depth, line)| {
+            let obj = line.parse::<OSObject>().unwrap();
+            (depth, obj)
+        })
+        .collect::<Vec<_>>();
     dbg!(objs);
-    root
+    Rc::new(RefCell::new(Dir::new("some".to_string()))) // to compile
 }
 
 fn start_of_line(line: &str) -> (usize, String) {

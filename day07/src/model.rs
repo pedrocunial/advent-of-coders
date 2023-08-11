@@ -1,14 +1,18 @@
+use std::{cell::RefCell, rc::Rc, str::FromStr};
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Dir {
     size: Option<usize>,
     children: Vec<Dir>,
-    parent: Option<Box<Dir>>,
+    parent: Option<Rc<RefCell<Dir>>>,
+    name: String,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct File {
     size: usize,
-    parent: Box<Dir>,
+    parent: Option<Rc<RefCell<Dir>>>,
+    name: String,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -18,11 +22,12 @@ pub enum OSObject {
 }
 
 impl Dir {
-    pub fn new(parent: Option<Box<Dir>>) -> Dir {
+    pub fn new(name: String) -> Dir {
         Dir {
             size: None,
             children: vec![],
-            parent: parent,
+            parent: None,
+            name: name,
         }
     }
 
@@ -43,10 +48,11 @@ impl Dir {
 }
 
 impl File {
-    pub fn new(parent: Box<Dir>, size: usize) -> File {
+    pub fn new(name: String, size: usize) -> File {
         File {
             size: size,
-            parent: parent,
+            name: name,
+            parent: None,
         }
     }
 }
@@ -65,5 +71,48 @@ impl OSObject {
 
     pub fn from_file(file: File) -> Self {
         Self::File(file)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub struct OSObjectParseErr {}
+
+impl FromStr for OSObject {
+    type Err = OSObjectParseErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let ref mut it = s.chars().into_iter();
+        if let Some(c) = it.next() {
+            if c == ' ' {
+                return Err(OSObjectParseErr {});
+            }
+        }
+
+        let name = it.take_while(|&c| c != ' ').collect::<String>();
+
+        if let Some(c) = it.next() {
+            if c == '(' {
+                return Err(OSObjectParseErr {});
+            }
+        }
+
+        let typ = it.take_while(|&c| c != ' ').collect::<String>();
+        match typ.as_str() {
+            "dir" => return Ok(Self::from_dir(Dir::new(name))),
+            "file" => (),
+            _ => return Err(OSObjectParseErr {}),
+        }
+
+        if let (Some(c1), Some(c2)) = (it.next(), it.next()) {
+            if c1 != ',' || c2 != ' ' {
+                return Err(OSObjectParseErr {});
+            }
+        }
+        if "size=" != it.take(5).collect::<String>().as_str() {
+            return Err(OSObjectParseErr {});
+        }
+        let size = it.take_while(|&c| c != ')').collect::<String>();
+
+        return Err(OSObjectParseErr {});
     }
 }
