@@ -1,5 +1,7 @@
 use std::{cell::RefCell, rc::Rc, str::FromStr};
 
+use regex::Regex;
+
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Dir {
     size: Option<usize>,
@@ -74,45 +76,31 @@ impl OSObject {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
-pub struct OSObjectParseErr {}
-
 impl FromStr for OSObject {
-    type Err = OSObjectParseErr;
+    type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ref mut it = s.chars().into_iter();
-        if let Some(c) = it.next() {
-            if c == ' ' {
-                return Err(OSObjectParseErr {});
+        let cap = Regex::new(r"(?<name>\S+) \((?<type>dir|file, size=(?<size>\d+))\)")
+            .map_err(|_| "invalid regex string".to_string())?
+            .captures(s)
+            .ok_or(format!("couldn't match string {}", s))?;
+
+        let name = cap.name("name").map(|m| m.as_str()).unwrap_or("");
+        let typ = cap.name("type").map(|m| m.as_str()).unwrap_or("");
+
+        match typ {
+            "dir" => Ok(Self::from_dir(Dir::new(name.to_string()))),
+            t if t.contains("file") => {
+                let size = cap
+                    .name("size")
+                    .map(|m| m.as_str())
+                    .unwrap_or("")
+                    .parse::<usize>()
+                    .map_err(|_| format!("invalid size in string {}", s))?;
+
+                Ok(Self::from_file(File::new(name.to_string(), size)))
             }
+            format => Err(format!("invalid object type {} in string {}", format, s)),
         }
-
-        let name = it.take_while(|&c| c != ' ').collect::<String>();
-
-        if let Some(c) = it.next() {
-            if c == '(' {
-                return Err(OSObjectParseErr {});
-            }
-        }
-
-        let typ = it.take_while(|&c| c != ' ').collect::<String>();
-        match typ.as_str() {
-            "dir" => return Ok(Self::from_dir(Dir::new(name))),
-            "file" => (),
-            _ => return Err(OSObjectParseErr {}),
-        }
-
-        if let (Some(c1), Some(c2)) = (it.next(), it.next()) {
-            if c1 != ',' || c2 != ' ' {
-                return Err(OSObjectParseErr {});
-            }
-        }
-        if "size=" != it.take(5).collect::<String>().as_str() {
-            return Err(OSObjectParseErr {});
-        }
-        let size = it.take_while(|&c| c != ')').collect::<String>();
-
-        return Err(OSObjectParseErr {});
     }
 }
