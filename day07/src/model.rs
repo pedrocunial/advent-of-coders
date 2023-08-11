@@ -1,55 +1,49 @@
-pub trait Sizeable {
-    fn size(&mut self) -> usize;
-}
-
-impl PartialEq for dyn Sizeable + '_ {
-    fn eq(&self, that: &dyn Sizeable) -> bool {
-        <dyn Sizeable>::eq(self, that)
-    }
-}
-
-impl PartialEq<dyn Sizeable> for Box<dyn Sizeable + '_> {
-    fn eq(&self, that: &dyn Sizeable) -> bool {
-        <dyn Sizeable>::eq(&**self, that)
-    }
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Dir {
-    pub contents: Vec<Box<dyn Sizeable>>,
     size: Option<usize>,
-    parent: Option<Box<dyn Sizeable>>,
+    children: Vec<Dir>,
+    parent: Option<Box<Dir>>,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub struct File {
+    size: usize,
+    parent: Box<Dir>,
+}
+
+#[derive(Debug, Eq, PartialEq, Clone)]
+pub enum OSObject {
+    File(File),
+    Dir(Dir),
 }
 
 impl Dir {
-    fn new(parent: Option<Box<dyn Sizeable>>) -> Self {
+    pub fn new(parent: Option<Box<Dir>>) -> Dir {
         Dir {
-            contents: vec![],
             size: None,
+            children: vec![],
             parent: parent,
         }
     }
-}
 
-impl Sizeable for Dir {
     fn size(&mut self) -> usize {
         if let Some(size) = self.size {
             return size;
         }
-        let size = self.contents.into_iter().map(|mut it| it.size()).sum();
+
+        let size = self
+            .children
+            .clone()
+            .into_iter()
+            .map(|mut child| child.size())
+            .sum();
         self.size = Some(size);
         size
     }
 }
 
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct File {
-    size: usize,
-    parent: Option<Box<dyn Sizeable>>,
-}
-
 impl File {
-    fn new(size: usize, parent: Option<Box<dyn Sizeable>>) -> File {
+    pub fn new(parent: Box<Dir>, size: usize) -> File {
         File {
             size: size,
             parent: parent,
@@ -57,37 +51,19 @@ impl File {
     }
 }
 
-impl Sizeable for File {
-    fn size(&mut self) -> usize {
-        self.size
-    }
-}
-
-pub fn parse<T>(input: Vec<&str>) -> Box<dyn Sizeable>
-where
-    T: Sizeable,
-{
-    let root = Box::new(Dir::new(None));
-    let objs = input.into_iter().map(start_of_line).collect::<Vec<_>>();
-    dbg!(objs);
-    root
-}
-
-fn start_of_line(line: &str) -> (usize, String) {
-    let mut it = line.chars().into_iter();
-    let mut depth = 0;
-    let mut even = false;
-    while let Some(c) = it.next() {
-        match c {
-            ' ' => {
-                if even {
-                    depth += 1;
-                }
-                even = !even;
-            }
-            _ => break,
+impl OSObject {
+    pub fn size(&mut self) -> usize {
+        match self {
+            OSObject::File(file) => file.size,
+            OSObject::Dir(ref mut dir) => dir.size(),
         }
     }
 
-    (depth, it.collect::<String>())
+    pub fn from_dir(dir: Dir) -> Self {
+        Self::Dir(dir)
+    }
+
+    pub fn from_file(file: File) -> Self {
+        Self::File(file)
+    }
 }
