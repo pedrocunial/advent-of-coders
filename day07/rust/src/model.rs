@@ -6,14 +6,14 @@ use regex::Regex;
 pub struct Dir {
     size: Option<usize>,
     children: Vec<Dir>,
-    parent: Option<Rc<RefCell<Dir>>>,
+    parent: Option<Rc<RefCell<OSObject>>>,
     name: String,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
 pub struct File {
     size: usize,
-    parent: Option<Rc<RefCell<Dir>>>,
+    parent: Option<Rc<RefCell<OSObject>>>,
     name: String,
 }
 
@@ -60,6 +60,14 @@ impl File {
 }
 
 impl OSObject {
+    pub fn from_dir(dir: Dir) -> Self {
+        Self::Dir(dir)
+    }
+
+    pub fn from_file(file: File) -> Self {
+        Self::File(file)
+    }
+
     pub fn size(&mut self) -> usize {
         match self {
             OSObject::File(file) => file.size,
@@ -67,12 +75,11 @@ impl OSObject {
         }
     }
 
-    pub fn from_dir(dir: Dir) -> Self {
-        Self::Dir(dir)
-    }
-
-    pub fn from_file(file: File) -> Self {
-        Self::File(file)
+    pub fn parent(&self) -> Option<Rc<RefCell<Self>>> {
+        match self {
+            OSObject::File(obj) => obj.parent.as_ref().map(Rc::clone),
+            OSObject::Dir(obj) => obj.parent.as_ref().map(Rc::clone),
+        }
     }
 }
 
